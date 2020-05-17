@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +45,7 @@ class Server{
 	private boolean isRunning = false;
 	private Server server;
 	private String name;
+	private String profilePath;
 	private Properties profile;
 	private JClosableTabbedPane tab;
 	private JPanel serverPanel;
@@ -56,9 +56,10 @@ class Server{
 	private BufferedReader bufferedReader = null;
 	private String jvmArguments = "", arguments = "", stopCommand = "stop";
 	
-	public Server(JClosableTabbedPane tab, String name) {
+	public Server(JClosableTabbedPane tab, String name, String profilePath) {
 		this.tab = tab;
 		this.name = name;
+		this.profilePath = profilePath;
 		this.server = this;
 		servers.add(this);
 		
@@ -219,7 +220,9 @@ class Server{
 		controlPanel.add(optionButton);
 		controlPanel.add(fileSelectButton);
 		
-		tab.addTab(name, serverPanel);
+		//tab.addTab(name, null, serverPanel, profilePath);
+		tab.addTab(name, "servers/" + profilePath, serverPanel, true, this);
+		tab.setSelectedIndex(tab.getTabCount() - 1);
 
 		serverPanel.addHierarchyListener(new HierarchyListener() {
 			@Override
@@ -419,9 +422,8 @@ class Server{
 	
 	public boolean loadProfile() {
 		profile = new Properties();
-		String classPath = Paths.get(MCSM.class.getProtectionDomain().getCodeSource().getLocation().getPath()).toFile().getParentFile().getAbsolutePath();
-		File serversFolder = new File(classPath, "servers");
-		File file = new File(serversFolder, name + ".dat");
+		File serversFolder = new File("servers");
+		File file = new File(serversFolder, profilePath);
 		if(file.exists()) {
 			try {
 				profile.load(new FileInputStream(file));
@@ -440,9 +442,8 @@ class Server{
 			profile.remove(key);
 		}
 		try {
-			String classPath = Paths.get(MCSM.class.getProtectionDomain().getCodeSource().getLocation().getPath()).toFile().getParentFile().getAbsolutePath();
-			File serversFolder = new File(classPath, "servers");
-			profile.store(new FileOutputStream(new File(serversFolder, name + ".dat")), null);
+			File serversFolder = new File("servers");
+			profile.store(new FileOutputStream(new File(serversFolder, profilePath)), null);
 		}catch(IOException e) {}
 	}
 	
@@ -470,5 +471,9 @@ class Server{
 		close();
 		servers.remove(server);
 		tab.remove(serverPanel);
+	}
+	
+	public boolean isRunning() {
+		return isRunning;
 	}
 }

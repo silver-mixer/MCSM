@@ -10,6 +10,7 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
@@ -24,10 +25,10 @@ public class JClosableTabbedPane extends JTabbedPane{
 	
 	@Override
 	public void addTab(String title, Component content) {
-		addTab(title, content, true);
+		addTab(title, null, content, false, null);
 	}
 	
-	public void addTab(String title, Component content, boolean isClosable) {
+	public void addTab(String title, String tooltip, Component content, boolean isClosable, Server parentServer) {
 		JPanel tab = new JPanel(new BorderLayout());
 		tab.setOpaque(false);
 		JLabel label = new JLabel(title);
@@ -43,6 +44,9 @@ public class JClosableTabbedPane extends JTabbedPane{
 			button.addMouseListener(new MouseAdapter() {
 				@Override
 				public void mouseClicked(MouseEvent e){
+					if(parentServer.isRunning()) {
+						if(JOptionPane.showConfirmDialog(null, "サーバは動作中です。タブを閉じますか?\n(終了処理は行われます。)", "MCSM", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)return;
+					}
 					int index = tabbedPane.tabbedPane.indexOfTabComponent(tab);
 					if(index != -1)tabbedPane.remove(index);
 				}
@@ -63,5 +67,6 @@ public class JClosableTabbedPane extends JTabbedPane{
 		tab.setBorder(BorderFactory.createEmptyBorder(2, 1, 1, 1));
 		super.addTab(null, content);
 		setTabComponentAt(getTabCount() - 1, tab);
+		setToolTipTextAt(getTabCount() - 1, tooltip);
 	}
 }

@@ -7,9 +7,15 @@ import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ConnectException;
@@ -17,6 +23,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.BoxLayout;
@@ -27,10 +36,19 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTree;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.MutableTreeNode;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
+import javax.swing.tree.TreeSelectionModel;
 
 public class MCSM extends JFrame{
 	private static final long serialVersionUID = 1L;
 	private static final int PORT = 7327;
+	private static final String MCSM_PREFIX = "[MCSM INFO]: ";
+	private static String classPath = "";
 	private static MCSM mcsm;
 	private static JClosableTabbedPane tab;
 	private static DefaultListModel<String> servers = new DefaultListModel<String>();
@@ -71,13 +89,77 @@ public class MCSM extends JFrame{
 		menuPanel.setPreferredSize(new Dimension(mainPanel.getPreferredSize().width, 25));
 		menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.LINE_AXIS));
 		
+		ServerNode root = new ServerNode("root");
+		
+		/*
+			display.datが存在すればrootに読み込み
+			rootを列挙し存在しないファイル名の項目を削除
+			serversディレクトリを列挙しrootに存在しないファイルをASCIIソートして追加
+			ASCIIソートは追加されたファイルのみで既存項目はソートしない
+			(リスト=既存項目+ASCIIソートされた追加ファイル)
+		*/
+
+		File displayFile = new File("display.dat");
+		if(displayFile.exists()) {
+			try {
+				FileInputStream fis = new FileInputStream(displayFile);
+				ObjectInputStream ois = new ObjectInputStream(fis);
+				root = (ServerNode)ois.readObject();
+				ois.close();
+				fis.close();
+			}catch(Exception e) {
+				e.printStackTrace();
+			}
+		}else {
+			System.out.println(MCSM_PREFIX + "display.dat not found.");
+		}
+		
+		removeFileNotExistServerNode("servers", root);
+		addServerNodeFromExistFile(serversFolder, root);
+		
+		JTree tree = new JTree(root);
+		tree.setRootVisible(true);
+		tree.setRowHeight(23);
+		tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+		((DefaultTreeModel)tree.getModel()).setAsksAllowsChildren(true);
+
+		saveServerListDisplay(tree);
+		//printServerNode(getAllElements(tree.getPathForRow(0), "root"), 0);
+		
 		JList<String> serverList = new JList<String>(servers);
-		JScrollPane serverListScroll = new JScrollPane(serverList);
+		JScrollPane serverListScroll = new JScrollPane(tree);
 		gbc.gridx = 0;
 		gbc.gridy = 1;
 		gbc.weightx = 1.0;
 		gbc.weighty = 1.0;
 		layout.setConstraints(serverListScroll, gbc);
+		
+		tree.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent event) {
+				if(event.isShiftDown() && (event.getKeyCode() == KeyEvent.VK_UP || event.getKeyCode() == KeyEvent.VK_DOWN)) {
+					TreePath selectPath = tree.getSelectionPath();
+					if(selectPath == null || selectPath.getParentPath() == null)return;
+					int row = tree.getMinSelectionRow();
+					int fromIndex = ((DefaultMutableTreeNode)selectPath.getParentPath().getLastPathComponent()).getIndex((TreeNode)selectPath.getLastPathComponent());
+					MutableTreeNode fromNode = (MutableTreeNode)selectPath.getLastPathComponent();
+					int deltaIndex = 0;
+					if(event.getKeyCode() == KeyEvent.VK_UP) {
+						deltaIndex = -1;
+					}else if(event.getKeyCode() == KeyEvent.VK_DOWN) {
+						deltaIndex = 1;
+					}
+					if(0 <= (fromIndex + deltaIndex) && (fromIndex + deltaIndex) < ((TreeNode)selectPath.getParentPath().getLastPathComponent()).getChildCount()) {
+						((DefaultTreeModel)tree.getModel()).removeNodeFromParent(fromNode);
+						((DefaultTreeModel)tree.getModel()).insertNodeInto(fromNode, (DefaultMutableTreeNode)selectPath.getParentPath().getLastPathComponent(), fromIndex + deltaIndex);
+						tree.setSelectionRow(tree.getRowForPath(selectPath) + deltaIndex * -1);
+						saveServerListDisplay(tree);
+					}else {
+						tree.setSelectionRow(row + deltaIndex * -1);
+					}
+				}
+			}
+		});
 		
 		mainPanel.add(menuPanel);
 		mainPanel.add(serverListScroll);
@@ -87,9 +169,17 @@ public class MCSM extends JFrame{
 		openButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				if(serverList.getSelectedIndex() != -1) {
-					String name = servers.get(serverList.getSelectedIndex());
-					if(!Server.existLaunchServer(name))new Server(tab, name);
+				if(!tree.isSelectionEmpty() && ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).isLeaf()) {
+					StringBuilder sb = new StringBuilder();
+					for(int i = 1; i < tree.getSelectionPath().getPathCount(); i++) {
+						sb.append(tree.getSelectionPath().getPathComponent(i));
+						if(i + 1 != tree.getSelectionPath().getPathCount()) {
+							sb.append("/");
+						}
+					}
+					String profilePath = sb.toString() + ".dat";
+					String name = tree.getSelectionPath().getLastPathComponent().toString();
+					if(!Server.existLaunchServer(profilePath))new Server(tab, name, profilePath);
 				}
 			}
 		});
@@ -99,13 +189,39 @@ public class MCSM extends JFrame{
 		newButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				String addName = JOptionPane.showInputDialog(MCSM.getMCSM(), "サーバープロファイル名を入力してください。", "MCSM", JOptionPane.PLAIN_MESSAGE);
-				if(!addName.isEmpty()) {
-					if(addName.matches(".*[^a-zA-Z0-9-_].*")) {
+				if(tree.getSelectionPath() == null)return;
+				TreePath selectPath = tree.getSelectionPath();
+				if(!((TreeNode)selectPath.getLastPathComponent()).getAllowsChildren())return;
+				String addName = JOptionPane.showInputDialog(MCSM.getMCSM(), "サーバープロファイル名またはフォルダ名を入力してください。\nフォルダ名の場合は最後に「/」を入力して下さい。(例: 「folder/」)", "MCSM", JOptionPane.PLAIN_MESSAGE);
+				if(addName != null && !addName.isEmpty()) {
+					boolean isFolder = addName.matches("[a-zA-Z0-9-_]+/$");
+					boolean isLeef = addName.matches("[a-zA-Z0-9-_]+");
+					if(!isFolder && !isLeef) {
 						JOptionPane.showMessageDialog(MCSM.getMCSM(), "サーバープロファイル名は半角英数, \"-\", \"_\"で入力してください。", "MCSM - エラー", JOptionPane.ERROR_MESSAGE);
 						return;
 					}
-					for(int i = 0; i < servers.size(); i++) {
+					DefaultMutableTreeNode addNode = new DefaultMutableTreeNode(addName.replaceAll("/", ""));
+					addNode.setAllowsChildren(isFolder);
+					((DefaultTreeModel)tree.getModel()).insertNodeInto(addNode, (DefaultMutableTreeNode)selectPath.getLastPathComponent(), ((TreeNode)selectPath.getLastPathComponent()).getChildCount());
+					saveServerListDisplay(tree);
+					
+					if(isLeef) {
+						try {
+							System.out.println("test");
+							File directory = new File(getTreePathToPath(selectPath, true));
+							directory.mkdirs();
+							File file = new File(directory, addName + ".dat");
+							file.createNewFile();
+							new Server(tab, addName, "/" + getTreePathToPath(selectPath, false) + addName + ".dat");
+						}catch(IOException e) {
+							JOptionPane.showMessageDialog(MCSM.getMCSM(), "サーバープロファイルの作成に失敗しました。", "エラー", JOptionPane.ERROR_MESSAGE);
+						}
+					}else {
+						File directory = new File(getTreePathToPath(selectPath, true));
+						directory.mkdirs();
+					}
+					//new Server(tab, "OK", "path");
+					/*for(int i = 0; i < servers.size(); i++) {
 						if(addName.equals(servers.get(i))) {
 							JOptionPane.showMessageDialog(MCSM.getMCSM(), "既に登録されています。", "MCSM - エラー", JOptionPane.ERROR_MESSAGE);
 							return;
@@ -116,7 +232,7 @@ public class MCSM extends JFrame{
 						file.createNewFile();
 					}catch(IOException e) {}
 					servers.addElement(addName);
-					new Server(tab, addName);
+					new Server(tab, addName);*/
 				}
 			}
 		});
@@ -144,7 +260,7 @@ public class MCSM extends JFrame{
 		menuPanel.add(newButton);
 		menuPanel.add(removeButton);
 		
-		tab.addTab("Main", mainPanel, false);
+		tab.addTab("Main", mainPanel);
 	}
 	
 	public static void main(String[] args){
@@ -170,17 +286,17 @@ public class MCSM extends JFrame{
 			if(!stopServer.isEmpty())pw.println("stop " + String.join(" ", stopServer));
 			pw.close();
 			socket.close();
-			System.out.println("[MCSM INFO]: Transfer arguments to an existing process.");
+			System.out.println(MCSM_PREFIX + "Transfer arguments to an existing process.");
 			System.exit(0);
 		}catch(ConnectException e) {
-			System.out.println("[MCSM INFO]: Double start was not detected.");
+			System.out.println(MCSM_PREFIX + "Double start was not detected.");
 		}catch(IOException e){
 			e.printStackTrace();
 		}
 		IPCServer server = new IPCServer(PORT + (isTest ? 1 : 0));
 		server.start();
 		
-		String classPath = Paths.get(MCSM.class.getProtectionDomain().getCodeSource().getLocation().getPath()).toFile().getParentFile().getAbsolutePath();
+		classPath = Paths.get(MCSM.class.getProtectionDomain().getCodeSource().getLocation().getPath()).toFile().getParentFile().getAbsolutePath();
 		serversFolder = new File(classPath, "servers");
 		serversFolder.mkdirs();
 		for(File file: serversFolder.listFiles()) {
@@ -207,7 +323,7 @@ public class MCSM extends JFrame{
 		if(servers.contains(name)) {
 			Server server = Server.getServer(name);
 			if(server == null) {
-				new Server(tab, name).start();
+				new Server(tab, name, "path").start();
 			}else{
 				server.start();
 			}
@@ -247,5 +363,118 @@ public class MCSM extends JFrame{
 		List<String> serverList = new ArrayList<String>();
 		for(Server server: Server.getServers())serverList.add(server.getName());
 		return String.join("\n", serverList);
+	}
+	
+	public void removeFileNotExistServerNode(String path, ServerNode node) {
+		for(int i = 0; i < node.size(); i++) {
+			if(node.get(i) instanceof ServerNode) {
+				File directory = new File(path, node.get(i).toString());
+				if(directory.exists()) {
+					removeFileNotExistServerNode(directory.getPath(), (ServerNode)node.get(i));
+				}else {
+					node.remove(i);
+					i--;
+				}
+			}else {
+				File file = new File(path, (String)node.get(i) + ".dat");
+				if(!file.exists()) {
+					node.remove(i);
+					i--;
+				}
+			}
+		}
+	}
+	
+	public void saveServerListDisplay(JTree tree) {
+		ServerNode root = getAllElements(tree.getPathForRow(0), "root");
+		try {
+			FileOutputStream fos = new FileOutputStream("display.dat");
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(root);
+			oos.close();
+			fos.close();
+			System.out.println(MCSM_PREFIX + "Saved display settings.");
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void addServerNodeFromExistFile(File directory, ServerNode node) {
+		List<ServerNode> directoryList = new ArrayList<ServerNode>();
+		List<String> fileList = new ArrayList<String>();
+		for(File file: directory.listFiles()) {
+			if(file.isFile()) {
+				if(file.getName().endsWith(".dat")) {
+					String name = file.getName().substring(0, file.getName().lastIndexOf(".dat"));
+					if(!node.contains(name))fileList.add(name);
+				}
+			}else{
+				ServerNode childNode = node.getServerNode(file.getName());
+				if(childNode == null) {
+					childNode = new ServerNode(file.getName());
+					addServerNodeFromExistFile(file, childNode);
+					directoryList.add(childNode);
+				}else {
+					addServerNodeFromExistFile(file, childNode);
+				}
+			}
+		}
+		Collections.sort(directoryList, new Comparator<ServerNode>() {
+			@Override
+			public int compare(ServerNode n1, ServerNode n2) {
+				return n1.toString().compareTo(n2.toString());
+			}
+		});
+		Collections.sort(fileList);
+		for(ServerNode e: directoryList)node.add(e);
+		for(String e: fileList)node.add(e);
+	}
+	
+	public ServerNode findServerNode(ServerNode node, String name) {
+		Iterator<Object> itr = node.iterator();
+		while(itr.hasNext()) {
+			Object child = itr.next();
+			if(child instanceof ServerNode) {
+				if(child.toString().equals(name))return (ServerNode)child;
+			}
+		}
+		return null;
+	}
+	
+	public ServerNode getAllElements(TreePath path, String treeName){
+		ServerNode nodes = new ServerNode(treeName);
+		TreeNode node = (TreeNode)path.getLastPathComponent();
+		for(int i = 0; i < node.getChildCount(); i++) {
+			TreeNode childNode = node.getChildAt(i);
+			if(childNode.isLeaf()) {
+				nodes.add(childNode.toString());
+			}else {
+				nodes.add(getAllElements(new TreePath(((DefaultMutableTreeNode)childNode).getPath()), childNode.toString()));
+			}
+		}
+		return nodes;
+	}
+	
+	public String getTreePathToPath(TreePath path, boolean withServerFolder) {
+		StringBuilder strPath = new StringBuilder(withServerFolder ? "servers/" : "");
+		for(int i = 1; i < path.getPathCount(); i++) {
+			strPath.append(path.getPathComponent(i).toString()).append("/");
+		}
+		return strPath.toString();
+	}
+	
+	public void printServerNode(ServerNode node, int depth) {
+		Iterator<Object> itr = node.iterator();
+		while(itr.hasNext()) {
+			Object child = itr.next();
+			if(child instanceof ServerNode) {
+				for(int i = 0; i < depth + 1; i++)System.out.print(">");
+				System.out.println("[" + child.toString() + "]");
+				printServerNode((ServerNode)child, depth + 1);
+			}else {
+				for(int i = 0; i < depth; i++)System.out.print(">");
+				System.out.println(child.toString());
+			}
+		}
 	}
 }
