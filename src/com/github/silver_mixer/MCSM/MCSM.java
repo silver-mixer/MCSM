@@ -9,6 +9,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -156,6 +158,26 @@ public class MCSM extends JFrame{
 						saveServerListDisplay(tree);
 					}else {
 						tree.setSelectionRow(row + deltaIndex * -1);
+					}
+				}
+			}
+		});
+		
+		tree.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent event) {
+				if(event.getClickCount() == 2) {
+					if(!tree.isSelectionEmpty() && ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).isLeaf()) {
+						StringBuilder sb = new StringBuilder();
+						for(int i = 1; i < tree.getSelectionPath().getPathCount(); i++) {
+							sb.append(tree.getSelectionPath().getPathComponent(i));
+							if(i + 1 != tree.getSelectionPath().getPathCount()) {
+								sb.append("/");
+							}
+						}
+						String profilePath = sb.toString() + ".dat";
+						String name = tree.getSelectionPath().getLastPathComponent().toString();
+						if(!Server.existLaunchServer(profilePath))new Server(tab, name, profilePath);
 					}
 				}
 			}
