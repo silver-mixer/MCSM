@@ -45,16 +45,15 @@ import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 public class MCSM extends JFrame{
+	public static final String MCSM_TITLE = "MCSM";
+	public static final String MCSM_ERROR_TITLE = "MCSM - エラー";
+	public static final String MCSM_CAUTION_TITLE = "MCSM - 警告";
 	private static final long serialVersionUID = 1L;
 	private static final int PORT = 7327;
 	private static final String MCSM_PREFIX = "[MCSM INFO]: ";
-	private static final String MCSM_TITLE = "MCSM";
-	private static final String MCSM_ERROR_TITLE = "MCSM - エラー";
-	private static final String MCSM_CAUTION_TITLE = "MCSM - 警告";
 	private static String classPath = "";
 	private static MCSM mcsm;
 	private static JClosableTabbedPane tab;
-	//private static DefaultListModel<String> servers = new DefaultListModel<String>();
 	private static ArrayList<String> servers = new ArrayList<String>();
 	private static File serversFolder, backupsFolder;
 	private static final String[] HELP_TEXT = {

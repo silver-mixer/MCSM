@@ -45,7 +45,7 @@ public class JClosableTabbedPane extends JTabbedPane{
 				@Override
 				public void mouseClicked(MouseEvent e){
 					if(parentServer.isRunning()) {
-						if(JOptionPane.showConfirmDialog(null, "サーバは動作中です。タブを閉じますか?\n(終了処理は行われます。)", "MCSM", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)return;
+						if(JOptionPane.showConfirmDialog(null, "サーバは動作中です。タブを閉じますか?\n(終了処理は行われます。)", MCSM.MCSM_TITLE, JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)return;
 					}
 					int index = tabbedPane.tabbedPane.indexOfTabComponent(tab);
 					if(index != -1)tabbedPane.remove(index);

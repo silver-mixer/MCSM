@@ -58,7 +58,6 @@ class Server{
 	
 	public Server(JClosableTabbedPane tab, String profilePath) {
 		this.tab = tab;
-		System.out.println(profilePath);
 		this.name = profilePath.substring((profilePath.contains("/") ? profilePath.lastIndexOf("/") + 1 : 0), profilePath.lastIndexOf(".dat"));
 		this.profilePath = profilePath;
 		this.server = this;
