@@ -422,7 +422,6 @@ public class MCSM extends JFrame{
 			oos.writeObject(root);
 			oos.close();
 			fos.close();
-			System.out.println(MCSM_PREFIX + "Saved display settings.");
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
