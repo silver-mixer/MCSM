@@ -334,7 +334,7 @@ class Server{
 	public static String backupServer(String name) {
 		if(!MCSM.existServer(name))return "Does not exist server.";
 		Properties profile = new Properties();
-		File file = new File(MCSM.getServersFolder(), name + ".dat");
+		File file = new File(MCSM.getServersDirectory(), name + ".dat");
 		if(file.exists()) {
 			try {
 				profile.load(new FileInputStream(file));
@@ -349,7 +349,7 @@ class Server{
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd-HH.mm.ss.SSS");
 		ProcessBuilder pb = new ProcessBuilder();
 		String backupFileName = sdf.format(calendar.getTime()) + ".7z";
-		pb.command("7z", "a", MCSM.getBackupsFolder().getAbsolutePath() + "/" + name + "/" + backupFileName, serverFolder.getAbsolutePath());
+		pb.command("7z", "a", MCSM.getBackupsDirectory().getAbsolutePath() + "/" + name + "/" + backupFileName, serverFolder.getAbsolutePath());
 		pb.redirectErrorStream(true);
 		Process process = null;
 		try {
@@ -369,9 +369,9 @@ class Server{
 	public static String restoreServer(String name, String backup) {
 		if(!MCSM.existServer(name))return "Does not exist server.";
 		if(existLaunchServer(name))return "Server is running.";
-		if(!new File(MCSM.getBackupsFolder(), "/" + name + "/" + backup).exists())return "Backup \"" + backup + "\" does not exist.";
+		if(!new File(MCSM.getBackupsDirectory(), "/" + name + "/" + backup).exists())return "Backup \"" + backup + "\" does not exist.";
 		Properties profile = new Properties();
-		File file = new File(MCSM.getServersFolder(), name + ".dat");
+		File file = new File(MCSM.getServersDirectory(), name + ".dat");
 		if(file.exists()) {
 			try {
 				profile.load(new FileInputStream(file));
@@ -389,7 +389,7 @@ class Server{
 			return "Server delete error.";
 		}
 		ProcessBuilder pb = new ProcessBuilder();
-		pb.command("7z", "x", "-o" + serverParentFolder.getAbsolutePath(), MCSM.getBackupsFolder().getAbsolutePath() + "/" + name + "/" + backup);
+		pb.command("7z", "x", "-o" + serverParentFolder.getAbsolutePath(), MCSM.getBackupsDirectory().getAbsolutePath() + "/" + name + "/" + backup);
 		pb.redirectErrorStream(true);
 		Process process = null;
 		try {
@@ -407,7 +407,7 @@ class Server{
 	}
 	
 	public static String getServerBackupList(String name) {
-		File serverBackupFolder = new File(MCSM.getBackupsFolder().getAbsolutePath() + "/" + name);
+		File serverBackupFolder = new File(MCSM.getBackupsDirectory().getAbsolutePath() + "/" + name);
 		if(!serverBackupFolder.exists())return "Backup folder does not exist";
 		FilenameFilter filter = new FilenameFilter() {
 			@Override
@@ -425,8 +425,7 @@ class Server{
 	
 	public boolean loadProfile() {
 		profile = new Properties();
-		File serversFolder = new File("servers");
-		File file = new File(serversFolder, profilePath);
+		File file = new File(MCSM.getServersDirectory(), profilePath);
 		if(file.exists()) {
 			try {
 				profile.load(new FileInputStream(file));
@@ -445,8 +444,7 @@ class Server{
 			profile.remove(key);
 		}
 		try {
-			File serversFolder = new File("servers");
-			profile.store(new FileOutputStream(new File(serversFolder, profilePath)), null);
+			profile.store(new FileOutputStream(new File(MCSM.getServersDirectory(), profilePath)), null);
 		}catch(IOException e) {}
 	}
 	

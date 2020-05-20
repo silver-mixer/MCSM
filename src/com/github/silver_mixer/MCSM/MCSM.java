@@ -51,11 +51,10 @@ public class MCSM extends JFrame{
 	private static final long serialVersionUID = 1L;
 	private static final int PORT = 7327;
 	private static final String MCSM_PREFIX = "[MCSM INFO]: ";
-	private static String classPath = "";
 	private static MCSM mcsm;
 	private static JClosableTabbedPane tab;
 	private static ArrayList<String> servers = new ArrayList<String>();
-	private static File serversFolder, backupsFolder;
+	private static File mcsmDir, serversDir, backupsDir;
 	private static final String[] HELP_TEXT = {
 			"MCSM - Minecraft Server Manager",
 			"usage: [Option]",
@@ -102,7 +101,7 @@ public class MCSM extends JFrame{
 			(リスト=既存項目+ASCIIソートされた追加ファイル)
 		*/
 
-		File displayFile = new File("display.dat");
+		File displayFile = new File(mcsmDir, "display.dat");
 		if(displayFile.exists()) {
 			try {
 				FileInputStream fis = new FileInputStream(displayFile);
@@ -117,8 +116,8 @@ public class MCSM extends JFrame{
 			System.out.println(MCSM_PREFIX + "display.dat not found.");
 		}
 		
-		removeFileNotExistServerNode("servers", root);
-		addServerNodeFromExistFile(serversFolder, root);
+		removeFileNotExistServerNode(serversDir, root);
+		addServerNodeFromExistFile(serversDir, root);
 		
 		JTree tree = new JTree(root);
 		tree.setRootVisible(true);
@@ -220,7 +219,7 @@ public class MCSM extends JFrame{
 					
 					if(isLeef) {
 						try {
-							File directory = new File(getTreePathToPath(selectPath, true));
+							File directory = new File(serversDir, getTreePathToPath(selectPath, false));
 							directory.mkdirs();
 							File file = new File(directory, addName + ".dat");
 							if(file.exists()) {
@@ -233,7 +232,7 @@ public class MCSM extends JFrame{
 							JOptionPane.showMessageDialog(MCSM.getMCSM(), "サーバープロファイルの作成に失敗しました。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
 						}
 					}else {
-						File directory = new File(getTreePathToPath(selectPath, true), addName);
+						File directory = new File(new File(serversDir, getTreePathToPath(selectPath, false)), addName);
 						System.out.println(directory.getAbsolutePath());
 						if(directory.exists()) {
 							JOptionPane.showMessageDialog(MCSM.getMCSM(), "入力されたディレクトリ名は既に存在します。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
@@ -254,7 +253,7 @@ public class MCSM extends JFrame{
 					boolean isLeaf = ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).isLeaf() && !((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getAllowsChildren();
 					String path = getTreePathToPath(tree.getSelectionPath(), false) + (!isLeaf ? "" : ".dat");
 					String name = tree.getSelectionPath().getLastPathComponent().toString();
-					File file = new File(serversFolder, path);
+					File file = new File(serversDir, path);
 					if((!isLeaf && ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getChildCount() > 0) || (file.isDirectory() &&file.list().length > 0)) {
 						JOptionPane.showMessageDialog(MCSM.getMCSM(), "空ではないディレクトリは削除できません。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
 					}else {
@@ -316,12 +315,12 @@ public class MCSM extends JFrame{
 		IPCServer server = new IPCServer(PORT + (isTest ? 1 : 0));
 		server.start();
 		
-		classPath = Paths.get(MCSM.class.getProtectionDomain().getCodeSource().getLocation().getPath()).toFile().getParentFile().getAbsolutePath();
-		serversFolder = new File(classPath, "servers");
-		serversFolder.mkdirs();
-		updateServerList(serversFolder, "");
-		backupsFolder = new File(classPath, "backups");
-		backupsFolder.mkdirs();
+		mcsmDir = Paths.get(MCSM.class.getProtectionDomain().getCodeSource().getLocation().getPath()).toFile().getParentFile();
+		serversDir = new File(mcsmDir, "servers");
+		serversDir.mkdirs();
+		updateServerList(serversDir, "");
+		backupsDir = new File(mcsmDir, "backups");
+		backupsDir.mkdirs();
 		
 		mcsm = new MCSM();
 
@@ -363,12 +362,16 @@ public class MCSM extends JFrame{
 		return servers.contains(name);
 	}
 	
-	public static File getBackupsFolder() {
-		return backupsFolder;
+	public static File getMCSMDirectory() {
+		return mcsmDir;
 	}
 	
-	public static File getServersFolder() {
-		return serversFolder;
+	public static File getBackupsDirectory() {
+		return backupsDir;
+	}
+	
+	public static File getServersDirectory() {
+		return serversDir;
 	}
 	
 	public static String getServersList() {
@@ -394,12 +397,12 @@ public class MCSM extends JFrame{
 		}
 	}
 	
-	public void removeFileNotExistServerNode(String path, ServerNode node) {
+	public void removeFileNotExistServerNode(File path, ServerNode node) {
 		for(int i = 0; i < node.size(); i++) {
 			if(node.get(i) instanceof ServerNode) {
 				File directory = new File(path, node.get(i).toString());
 				if(directory.exists()) {
-					removeFileNotExistServerNode(directory.getPath(), (ServerNode)node.get(i));
+					removeFileNotExistServerNode(directory, (ServerNode)node.get(i));
 				}else {
 					node.remove(i);
 					i--;
@@ -417,7 +420,7 @@ public class MCSM extends JFrame{
 	public void saveServerListDisplay(JTree tree) {
 		ServerNode root = getAllElements(tree.getPathForRow(0), "root");
 		try {
-			FileOutputStream fos = new FileOutputStream("display.dat");
+			FileOutputStream fos = new FileOutputStream(new File(mcsmDir, "display.dat"));
 			ObjectOutputStream oos = new ObjectOutputStream(fos);
 			oos.writeObject(root);
 			oos.close();
