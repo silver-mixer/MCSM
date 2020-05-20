@@ -233,7 +233,8 @@ public class MCSM extends JFrame{
 							JOptionPane.showMessageDialog(MCSM.getMCSM(), "サーバープロファイルの作成に失敗しました。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
 						}
 					}else {
-						File directory = new File(getTreePathToPath(selectPath, true));
+						File directory = new File(getTreePathToPath(selectPath, true), addName);
+						System.out.println(directory.getAbsolutePath());
 						if(directory.exists()) {
 							JOptionPane.showMessageDialog(MCSM.getMCSM(), "入力されたディレクトリ名は既に存在します。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
 						}else {
@@ -250,7 +251,7 @@ public class MCSM extends JFrame{
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				if(!tree.isSelectionEmpty()) {
-					boolean isLeaf = ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).isLeaf();
+					boolean isLeaf = ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).isLeaf() && !((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getAllowsChildren();
 					String path = getTreePathToPath(tree.getSelectionPath(), false) + (!isLeaf ? "" : ".dat");
 					String name = tree.getSelectionPath().getLastPathComponent().toString();
 					File file = new File(serversFolder, path);
@@ -264,6 +265,7 @@ public class MCSM extends JFrame{
 								if(server != null)server.remove();
 								servers.remove(getTreePathToPath(tree.getSelectionPath(), false));
 							}
+							System.out.println(file.getAbsolutePath());
 							file.delete();
 							((MutableTreeNode)tree.getSelectionPath().getParentPath().getLastPathComponent()).remove(((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()));
 							tree.updateUI();
