@@ -250,7 +250,7 @@ public class MCSM extends JFrame{
 		removeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				if(!tree.isSelectionEmpty()) {
+				if(!tree.isSelectionEmpty() && tree.getSelectionPath().getPathCount() > 1) {
 					boolean isLeaf = ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).isLeaf() && !((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getAllowsChildren();
 					String path = getTreePathToPath(tree.getSelectionPath(), false) + (!isLeaf ? "" : ".dat");
 					String name = tree.getSelectionPath().getLastPathComponent().toString();
