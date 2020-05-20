@@ -56,9 +56,10 @@ class Server{
 	private BufferedReader bufferedReader = null;
 	private String jvmArguments = "", arguments = "", stopCommand = "stop";
 	
-	public Server(JClosableTabbedPane tab, String name, String profilePath) {
+	public Server(JClosableTabbedPane tab, String profilePath) {
 		this.tab = tab;
-		this.name = name;
+		System.out.println(profilePath);
+		this.name = profilePath.substring((profilePath.contains("/") ? profilePath.lastIndexOf("/") + 1 : 0), profilePath.lastIndexOf(".dat"));
 		this.profilePath = profilePath;
 		this.server = this;
 		servers.add(this);
@@ -220,7 +221,6 @@ class Server{
 		controlPanel.add(optionButton);
 		controlPanel.add(fileSelectButton);
 		
-		//tab.addTab(name, null, serverPanel, profilePath);
 		tab.addTab(name, "servers/" + profilePath, serverPanel, true, this);
 		tab.setSelectedIndex(tab.getTabCount() - 1);
 
@@ -261,13 +261,17 @@ class Server{
 	
 	public static Server getServer(String name) {
 		for(Server server: servers) {
-			if(server.getName().equals(name))return server;
+			if(server.getUniqueName().equals(name))return server;
 		}
 		return null;
 	}
 	
-	public String getName() {
-		return name;
+//	public String getName() {
+//		return name;
+//	}
+	
+	public String getUniqueName() {
+		return profilePath.substring(0, profilePath.lastIndexOf(".dat"));
 	}
 	
 	public void start() {
@@ -323,7 +327,7 @@ class Server{
 	
 	public static boolean existLaunchServer(String name) {
 		for(Server server: servers) {
-			if(server.getName().equals(name))return true;
+			if(server.getUniqueName().equals(name))return true;
 		}
 		return false;
 	}

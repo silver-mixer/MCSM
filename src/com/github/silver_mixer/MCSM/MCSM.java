@@ -31,10 +31,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.BoxLayout;
-import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -50,10 +48,14 @@ public class MCSM extends JFrame{
 	private static final long serialVersionUID = 1L;
 	private static final int PORT = 7327;
 	private static final String MCSM_PREFIX = "[MCSM INFO]: ";
+	private static final String MCSM_TITLE = "MCSM";
+	private static final String MCSM_ERROR_TITLE = "MCSM - エラー";
+	private static final String MCSM_CAUTION_TITLE = "MCSM - 警告";
 	private static String classPath = "";
 	private static MCSM mcsm;
 	private static JClosableTabbedPane tab;
-	private static DefaultListModel<String> servers = new DefaultListModel<String>();
+	//private static DefaultListModel<String> servers = new DefaultListModel<String>();
+	private static ArrayList<String> servers = new ArrayList<String>();
 	private static File serversFolder, backupsFolder;
 	private static final String[] HELP_TEXT = {
 			"MCSM - Minecraft Server Manager",
@@ -128,7 +130,6 @@ public class MCSM extends JFrame{
 		saveServerListDisplay(tree);
 		//printServerNode(getAllElements(tree.getPathForRow(0), "root"), 0);
 		
-		JList<String> serverList = new JList<String>(servers);
 		JScrollPane serverListScroll = new JScrollPane(tree);
 		gbc.gridx = 0;
 		gbc.gridy = 1;
@@ -176,8 +177,7 @@ public class MCSM extends JFrame{
 							}
 						}
 						String profilePath = sb.toString() + ".dat";
-						String name = tree.getSelectionPath().getLastPathComponent().toString();
-						if(!Server.existLaunchServer(profilePath))new Server(tab, name, profilePath);
+						if(!Server.existLaunchServer(profilePath))new Server(tab, profilePath);
 					}
 				}
 			}
@@ -192,16 +192,8 @@ public class MCSM extends JFrame{
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				if(!tree.isSelectionEmpty() && ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).isLeaf()) {
-					StringBuilder sb = new StringBuilder();
-					for(int i = 1; i < tree.getSelectionPath().getPathCount(); i++) {
-						sb.append(tree.getSelectionPath().getPathComponent(i));
-						if(i + 1 != tree.getSelectionPath().getPathCount()) {
-							sb.append("/");
-						}
-					}
-					String profilePath = sb.toString() + ".dat";
-					String name = tree.getSelectionPath().getLastPathComponent().toString();
-					if(!Server.existLaunchServer(profilePath))new Server(tab, name, profilePath);
+					String profilePath = getTreePathToPath(tree.getSelectionPath(), false) + ".dat";
+					if(!Server.existLaunchServer(profilePath))new Server(tab, profilePath);
 				}
 			}
 		});
@@ -214,12 +206,12 @@ public class MCSM extends JFrame{
 				if(tree.getSelectionPath() == null)return;
 				TreePath selectPath = tree.getSelectionPath();
 				if(!((TreeNode)selectPath.getLastPathComponent()).getAllowsChildren())return;
-				String addName = JOptionPane.showInputDialog(MCSM.getMCSM(), "サーバープロファイル名またはフォルダ名を入力してください。\nフォルダ名の場合は最後に「/」を入力して下さい。(例: 「folder/」)", "MCSM", JOptionPane.PLAIN_MESSAGE);
+				String addName = JOptionPane.showInputDialog(MCSM.getMCSM(), "サーバープロファイル名またはディレクトリ名を入力してください。\nディレクトリ名の場合は最後に「/」を入力して下さい。(例: 「folder/」)\n使用できる文字は半角英数, \"-\", \"_\"です。", MCSM_TITLE, JOptionPane.PLAIN_MESSAGE);
 				if(addName != null && !addName.isEmpty()) {
 					boolean isFolder = addName.matches("[a-zA-Z0-9-_]+/$");
 					boolean isLeef = addName.matches("[a-zA-Z0-9-_]+");
 					if(!isFolder && !isLeef) {
-						JOptionPane.showMessageDialog(MCSM.getMCSM(), "サーバープロファイル名は半角英数, \"-\", \"_\"で入力してください。", "MCSM - エラー", JOptionPane.ERROR_MESSAGE);
+						JOptionPane.showMessageDialog(MCSM.getMCSM(), "サーバープロファイル名、ディレクトリ名は半角英数, \"-\", \"_\"で入力してください。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
 						return;
 					}
 					DefaultMutableTreeNode addNode = new DefaultMutableTreeNode(addName.replaceAll("/", ""));
@@ -229,32 +221,26 @@ public class MCSM extends JFrame{
 					
 					if(isLeef) {
 						try {
-							System.out.println("test");
 							File directory = new File(getTreePathToPath(selectPath, true));
 							directory.mkdirs();
 							File file = new File(directory, addName + ".dat");
-							file.createNewFile();
-							new Server(tab, addName, "/" + getTreePathToPath(selectPath, false) + addName + ".dat");
+							if(file.exists()) {
+								JOptionPane.showMessageDialog(MCSM.getMCSM(), "入力されたサーバープロファイル名は既に存在します。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
+							}else {
+								file.createNewFile();
+								new Server(tab, getTreePathToPath(selectPath, false) + addName + ".dat");
+							}
 						}catch(IOException e) {
-							JOptionPane.showMessageDialog(MCSM.getMCSM(), "サーバープロファイルの作成に失敗しました。", "エラー", JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(MCSM.getMCSM(), "サーバープロファイルの作成に失敗しました。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
 						}
 					}else {
 						File directory = new File(getTreePathToPath(selectPath, true));
-						directory.mkdirs();
-					}
-					//new Server(tab, "OK", "path");
-					/*for(int i = 0; i < servers.size(); i++) {
-						if(addName.equals(servers.get(i))) {
-							JOptionPane.showMessageDialog(MCSM.getMCSM(), "既に登録されています。", "MCSM - エラー", JOptionPane.ERROR_MESSAGE);
-							return;
+						if(directory.exists()) {
+							JOptionPane.showMessageDialog(MCSM.getMCSM(), "入力されたディレクトリ名は既に存在します。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
+						}else {
+							directory.mkdirs();
 						}
 					}
-					try {
-						File file = new File("servers/" + addName + ".dat");
-						file.createNewFile();
-					}catch(IOException e) {}
-					servers.addElement(addName);
-					new Server(tab, addName);*/
 				}
 			}
 		});
@@ -264,15 +250,26 @@ public class MCSM extends JFrame{
 		removeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				if(serverList.getSelectedIndex() != -1) {
-					String name = servers.get(serverList.getSelectedIndex());
-					int answer = JOptionPane.showConfirmDialog(MCSM.getMCSM(), "\"" + name + "\"を削除しますか?\n設定は削除され戻せません。", "MCSM - 削除", JOptionPane.YES_NO_OPTION);
-					if(answer == JOptionPane.YES_OPTION) {
-						Server server = Server.getServer(name);
-						if(server != null)server.remove();
-						servers.removeElementAt(serverList.getSelectedIndex());
-						File file = new File("servers/" + name + ".dat");
-						file.delete();
+				if(!tree.isSelectionEmpty()) {
+					boolean isLeaf = ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).isLeaf();
+					String path = getTreePathToPath(tree.getSelectionPath(), false) + (!isLeaf ? "" : ".dat");
+					String name = tree.getSelectionPath().getLastPathComponent().toString();
+					File file = new File(serversFolder, path);
+					if((!isLeaf && ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getChildCount() > 0) || (file.isDirectory() &&file.list().length > 0)) {
+						JOptionPane.showMessageDialog(MCSM.getMCSM(), "空ではないディレクトリは削除できません。", MCSM_ERROR_TITLE, JOptionPane.ERROR_MESSAGE);
+					}else {
+						int answer = JOptionPane.showConfirmDialog(MCSM.getMCSM(), "\"" + name + "\"を削除しますか?\n設定は削除され戻せません。", MCSM_CAUTION_TITLE, JOptionPane.YES_NO_OPTION);
+						if(answer == JOptionPane.YES_OPTION) {
+							if(isLeaf) {
+								Server server = Server.getServer(path);
+								if(server != null)server.remove();
+								servers.remove(getTreePathToPath(tree.getSelectionPath(), false));
+							}
+							file.delete();
+							((MutableTreeNode)tree.getSelectionPath().getParentPath().getLastPathComponent()).remove(((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()));
+							tree.updateUI();
+							saveServerListDisplay(tree);
+						}
 					}
 				}
 			}
@@ -321,9 +318,7 @@ public class MCSM extends JFrame{
 		classPath = Paths.get(MCSM.class.getProtectionDomain().getCodeSource().getLocation().getPath()).toFile().getParentFile().getAbsolutePath();
 		serversFolder = new File(classPath, "servers");
 		serversFolder.mkdirs();
-		for(File file: serversFolder.listFiles()) {
-			if(file.isFile() && file.getName().endsWith(".dat"))servers.addElement(file.getName().substring(0, file.getName().lastIndexOf(".dat")));
-		}
+		updateServerList(serversFolder, "");
 		backupsFolder = new File(classPath, "backups");
 		backupsFolder.mkdirs();
 		
@@ -345,7 +340,7 @@ public class MCSM extends JFrame{
 		if(servers.contains(name)) {
 			Server server = Server.getServer(name);
 			if(server == null) {
-				new Server(tab, name, "path").start();
+				new Server(tab, name + ".dat").start();
 			}else{
 				server.start();
 			}
@@ -383,8 +378,19 @@ public class MCSM extends JFrame{
 	
 	public static String getLaunchServersList() {
 		List<String> serverList = new ArrayList<String>();
-		for(Server server: Server.getServers())serverList.add(server.getName());
+		for(Server server: Server.getServers())serverList.add(server.getUniqueName());
 		return String.join("\n", serverList);
+	}
+	
+	public static void updateServerList(File dir, String path) {
+		if(!dir.isDirectory())return;
+		for(File file: dir.listFiles()) {
+			if(file.isDirectory()) {
+				updateServerList(file, path + file.getName() + "/");
+			}else if(file.getName().endsWith(".dat")){
+				servers.add(path + file.getName().substring(0, file.getName().lastIndexOf(".dat")));
+			}
+		}
 	}
 	
 	public void removeFileNotExistServerNode(String path, ServerNode node) {
@@ -480,7 +486,8 @@ public class MCSM extends JFrame{
 	public String getTreePathToPath(TreePath path, boolean withServerFolder) {
 		StringBuilder strPath = new StringBuilder(withServerFolder ? "servers/" : "");
 		for(int i = 1; i < path.getPathCount(); i++) {
-			strPath.append(path.getPathComponent(i).toString()).append("/");
+			strPath.append(path.getPathComponent(i).toString());
+			if(i + 1 != path.getPathCount() || !((DefaultMutableTreeNode)path.getPathComponent(i)).isLeaf())strPath.append("/");
 		}
 		return strPath.toString();
 	}
