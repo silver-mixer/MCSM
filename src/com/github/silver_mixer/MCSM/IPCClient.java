@@ -18,13 +18,6 @@ class IPCClient extends Thread{
 	public IPCClient(Socket socket) {
 		this.socket = socket;
 		hasAllPermission = socket.getInetAddress().getHostAddress().equals("127.0.0.1");
-		permission.add("launch.namako");
-		permission.add("stop.namako");
-		permission.add("list");
-		permission.add("list.-l");
-		permission.add("backup.list.namako");
-		permission.add("backup.make.namako");
-		permission.add("backup.restore.namako.*");
 	}
 	
 	public void run() {
