@@ -38,9 +38,11 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 
 class Server{
 	private static List<Server> servers = new ArrayList<Server>();
+	private static final int LOG_LIMIT = 1000;
 	private final String[] SERVER_OPTIONS = {"JVM引数変更", "サーバー引数変更", "終了コマンド変更", "サーバーフォルダを開く"};
 	private boolean isRunning = false;
 	private Server server;
@@ -302,12 +304,21 @@ class Server{
 					
 					@Override
 					protected void process(List<String> lines) {
-						for(String line: lines) {
-							textArea.append(line);
-							textArea.append(System.lineSeparator());
-						}
-						while(textArea.getLineCount() > 1000) {
-							textArea.replaceRange("", 0, textArea.getText().indexOf("\n") + 1);
+						if(lines.size() > LOG_LIMIT) {
+							textArea.setText("");
+							for(int i = lines.size() - LOG_LIMIT; i < lines.size(); i++) {
+								textArea.append(lines.get(i));
+								textArea.append(System.lineSeparator());
+							}
+						}else {
+							if(textArea.getLineCount() + lines.size() > LOG_LIMIT) {
+								int deletePosition = StringUtils.ordinalIndexOf(textArea.getText(), "\n", (textArea.getLineCount() + lines.size()) - LOG_LIMIT - 1);
+								if(deletePosition != -1)textArea.replaceRange("", 0, deletePosition + 1);
+							}
+							for(String line: lines) {
+								textArea.append(line);
+								textArea.append(System.lineSeparator());
+							}
 						}
 					}
 					
