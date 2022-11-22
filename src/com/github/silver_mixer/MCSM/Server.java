@@ -45,7 +45,7 @@ class Server{
 		JVM_ARGUMENTS("JVM引数変更"),
 		SERVER_ARGUMENTS("サーバー引数変更"),
 		STOP_COMMAND("終了コマンド変更"),
-		OPEN_SERVER_FOLDER("サーバーフォルダを開く");
+		SET_SERVER_JAR("jarファイル設定");
 		
 		private String text;
 		
@@ -215,30 +215,30 @@ class Server{
 							}
 							textArea.append("[MCSM INFO]: Server stop command set to: " + stopCommand + System.lineSeparator());
 						}
-					}else if(serverOption == ServerOptions.OPEN_SERVER_FOLDER) {
-						if(Desktop.isDesktopSupported() && serverFile != null) {
-							try {
-								Desktop.getDesktop().open(serverFile.getParentFile());
-							}catch(IOException e) {
-								e.printStackTrace();
-							}
+					}else if(serverOption == ServerOptions.SET_SERVER_JAR) {
+						JFileChooser fileChooser = new JFileChooser();
+						fileChooser.showOpenDialog(null);
+						if(fileChooser.getSelectedFile() != null){
+							serverFile = fileChooser.getSelectedFile();
+							setProfileValue("jarfile", serverFile.getAbsolutePath());
+							textArea.append("[MCSM INFO]: jarfile set to: " + serverFile.getAbsolutePath() + System.lineSeparator());
 						}
 					}
 				}
 			}
 		});
 		
-		JButton fileSelectButton = new JButton("Set Server(.jar)");
+		JButton fileSelectButton = new JButton("Open Server Folder");
 		fileSelectButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, fileSelectButton.getMaximumSize().height));
 		fileSelectButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				JFileChooser fileChooser = new JFileChooser();
-				fileChooser.showOpenDialog(null);
-				if(fileChooser.getSelectedFile() != null){
-					serverFile = fileChooser.getSelectedFile();
-					setProfileValue("jarfile", serverFile.getAbsolutePath());
-					textArea.append("[MCSM INFO]: jarfile set to: " + serverFile.getAbsolutePath() + System.lineSeparator());
+				if(Desktop.isDesktopSupported() && serverFile != null) {
+					try {
+						Desktop.getDesktop().open(serverFile.getParentFile());
+					}catch(IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		});
