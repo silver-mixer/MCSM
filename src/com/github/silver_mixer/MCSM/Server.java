@@ -41,9 +41,34 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
 class Server{
+	enum ServerOptions{
+		JVM_ARGUMENTS("JVM引数変更"),
+		SERVER_ARGUMENTS("サーバー引数変更"),
+		STOP_COMMAND("終了コマンド変更"),
+		OPEN_SERVER_FOLDER("サーバーフォルダを開く");
+		
+		private String text;
+		
+		private ServerOptions(String text){
+			this.text = text;
+		}
+		
+		public String getText(){
+			return this.text;
+		}
+		
+		public static String[] getTexts() {
+			ServerOptions[] serverOptions = values();
+			String[] texts = new String[serverOptions.length];
+			for(int i = 0; i < serverOptions.length; i++) {
+				texts[i] = serverOptions[i].getText();
+			}
+			return texts;
+		}
+	}
+	
 	private static List<Server> servers = new ArrayList<Server>();
 	private static final int LOG_LIMIT = 1000;
-	private final String[] SERVER_OPTIONS = {"JVM引数変更", "サーバー引数変更", "終了コマンド変更", "サーバーフォルダを開く"};
 	private boolean isRunning = false;
 	private Server server;
 	private String name;
@@ -153,47 +178,50 @@ class Server{
 		optionButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				int answer = JOptionPane.showOptionDialog(MCSM.getMCSM(), "設定する項目を選んでください。", "MCSM", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, SERVER_OPTIONS, SERVER_OPTIONS[0]);
-				if(answer == 0) {
-					String newJvmArguments = JOptionPane.showInputDialog(MCSM.getMCSM(), "JVM引数を入力してください。", jvmArguments);
-					if(newJvmArguments != null) {
-						jvmArguments = newJvmArguments;
-						textArea.append("[MCSM INFO]: JVM arguments set to: " + jvmArguments + System.lineSeparator());
-						if(!jvmArguments.isEmpty()) {
-							setProfileValue("jvm_arguments", jvmArguments);
-						}else {
-							setProfileValue("jvm_arguments", null);
+				int answer = JOptionPane.showOptionDialog(MCSM.getMCSM(), "設定する項目を選んでください。", "MCSM", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, ServerOptions.getTexts(), ServerOptions.JVM_ARGUMENTS.getText());
+				if(0 <= answer && answer < ServerOptions.values().length) {
+					ServerOptions serverOption = ServerOptions.values()[answer];
+					if(serverOption == ServerOptions.JVM_ARGUMENTS) {
+						String newJvmArguments = JOptionPane.showInputDialog(MCSM.getMCSM(), "JVM引数を入力してください。", jvmArguments);
+						if(newJvmArguments != null) {
+							jvmArguments = newJvmArguments;
+							textArea.append("[MCSM INFO]: JVM arguments set to: " + jvmArguments + System.lineSeparator());
+							if(!jvmArguments.isEmpty()) {
+								setProfileValue("jvm_arguments", jvmArguments);
+							}else {
+								setProfileValue("jvm_arguments", null);
+							}
 						}
-					}
-				}else if(answer == 1) {
-					String newArguments = JOptionPane.showInputDialog(MCSM.getMCSM(), "サーバー引数を入力してください。", arguments);
-					if(newArguments != null) {
-						arguments = newArguments;
-						textArea.append("[MCSM INFO]: Server arguments set to: " + arguments + System.lineSeparator());
-						if(!arguments.isEmpty()) {
-							setProfileValue("arguments", arguments);
-						}else {
-							setProfileValue("arguments", null);
+					}else if(serverOption == ServerOptions.SERVER_ARGUMENTS) {
+						String newArguments = JOptionPane.showInputDialog(MCSM.getMCSM(), "サーバー引数を入力してください。", arguments);
+						if(newArguments != null) {
+							arguments = newArguments;
+							textArea.append("[MCSM INFO]: Server arguments set to: " + arguments + System.lineSeparator());
+							if(!arguments.isEmpty()) {
+								setProfileValue("arguments", arguments);
+							}else {
+								setProfileValue("arguments", null);
+							}
 						}
-					}
-				}else if(answer == 2) {
-					String newStopCommand = JOptionPane.showInputDialog(MCSM.getMCSM(), "終了コマンドを入力してください。", stopCommand);
-					if(newStopCommand != null) {
-						if(newStopCommand.isEmpty() || newStopCommand.equals("stop")) {
-							stopCommand = "stop";
-							setProfileValue("stop_command", null);
-						}else {
-							stopCommand = newStopCommand;
-							setProfileValue("stop_command", stopCommand);
+					}else if(serverOption == ServerOptions.STOP_COMMAND) {
+						String newStopCommand = JOptionPane.showInputDialog(MCSM.getMCSM(), "終了コマンドを入力してください。", stopCommand);
+						if(newStopCommand != null) {
+							if(newStopCommand.isEmpty() || newStopCommand.equals("stop")) {
+								stopCommand = "stop";
+								setProfileValue("stop_command", null);
+							}else {
+								stopCommand = newStopCommand;
+								setProfileValue("stop_command", stopCommand);
+							}
+							textArea.append("[MCSM INFO]: Server stop command set to: " + stopCommand + System.lineSeparator());
 						}
-						textArea.append("[MCSM INFO]: Server stop command set to: " + stopCommand + System.lineSeparator());
-					}
-				}else if(answer == 3) {
-					if(Desktop.isDesktopSupported() && serverFile != null) {
-						try {
-							Desktop.getDesktop().open(serverFile.getParentFile());
-						}catch(IOException e) {
-							e.printStackTrace();
+					}else if(serverOption == ServerOptions.OPEN_SERVER_FOLDER) {
+						if(Desktop.isDesktopSupported() && serverFile != null) {
+							try {
+								Desktop.getDesktop().open(serverFile.getParentFile());
+							}catch(IOException e) {
+								e.printStackTrace();
+							}
 						}
 					}
 				}
