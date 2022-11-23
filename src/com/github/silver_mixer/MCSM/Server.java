@@ -146,7 +146,7 @@ class Server{
 		layout.setConstraints(controlPanel, gbc);
 		serverPanel.add(controlPanel);
 		
-		JButton startButton = new JButton("Start");
+		JButton startButton = new JButton("開始");
 		startButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, startButton.getMaximumSize().height));
 		startButton.addActionListener(new ActionListener() {
 			@Override
@@ -155,7 +155,7 @@ class Server{
 			}
 		});
 		
-		JButton stopButton = new JButton("Stop");
+		JButton stopButton = new JButton("終了");
 		stopButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, stopButton.getMaximumSize().height));
 		stopButton.addActionListener(new ActionListener() {
 			@Override
@@ -164,7 +164,7 @@ class Server{
 			}
 		});
 		
-		JButton clearButton = new JButton("Log Clear");
+		JButton clearButton = new JButton("ログ削除");
 		clearButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, clearButton.getMaximumSize().height));
 		clearButton.addActionListener(new ActionListener() {
 			@Override
@@ -173,7 +173,7 @@ class Server{
 			}
 		});
 		
-		JButton optionButton = new JButton("Option");
+		JButton optionButton = new JButton("設定");
 		optionButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, optionButton.getMaximumSize().height));
 		optionButton.addActionListener(new ActionListener() {
 			@Override
@@ -228,7 +228,7 @@ class Server{
 			}
 		});
 		
-		JButton fileSelectButton = new JButton("Open Server Folder");
+		JButton fileSelectButton = new JButton("jarフォルダを開く");
 		fileSelectButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, fileSelectButton.getMaximumSize().height));
 		fileSelectButton.addActionListener(new ActionListener() {
 			@Override
