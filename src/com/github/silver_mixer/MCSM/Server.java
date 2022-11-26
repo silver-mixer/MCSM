@@ -42,6 +42,7 @@ import org.apache.commons.lang3.StringUtils;
 
 class Server{
 	enum ServerOptions{
+		LAUNCH_COMMAND("起動コマンド変更"),
 		JVM_ARGUMENTS("JVM引数変更"),
 		SERVER_ARGUMENTS("サーバー引数変更"),
 		STOP_COMMAND("終了コマンド変更"),
@@ -81,7 +82,7 @@ class Server{
 	private File serverFile = null;
 	private PrintStream printStream = null;
 	private BufferedReader bufferedReader = null;
-	private String jvmArguments = "", arguments = "", stopCommand = "stop";
+	private String launchCommand = "java", jvmArguments = "", arguments = "", stopCommand = "stop";
 	
 	public Server(JClosableTabbedPane tab, String profilePath) {
 		this.tab = tab;
@@ -181,7 +182,19 @@ class Server{
 				int answer = JOptionPane.showOptionDialog(MCSM.getMCSM(), "設定する項目を選んでください。", "MCSM", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, ServerOptions.getTexts(), ServerOptions.JVM_ARGUMENTS.getText());
 				if(0 <= answer && answer < ServerOptions.values().length) {
 					ServerOptions serverOption = ServerOptions.values()[answer];
-					if(serverOption == ServerOptions.JVM_ARGUMENTS) {
+					if(serverOption == ServerOptions.LAUNCH_COMMAND) {
+						String newLaunchCommand = JOptionPane.showInputDialog(MCSM.getMCSM(), "起動コマンドを入力してください。", launchCommand);
+						if(newLaunchCommand != null) {
+							if(newLaunchCommand.isEmpty() || newLaunchCommand.equals("java")) {
+								launchCommand = "java";
+								setProfileValue("launch_command", null);
+							}else {
+								launchCommand = newLaunchCommand;
+								setProfileValue("launch_command", launchCommand);
+							}
+							textArea.append("[MCSM INFO]: Launch command set to: " + launchCommand + System.lineSeparator());
+						}
+					}else if(serverOption == ServerOptions.JVM_ARGUMENTS) {
 						String newJvmArguments = JOptionPane.showInputDialog(MCSM.getMCSM(), "JVM引数を入力してください。", jvmArguments);
 						if(newJvmArguments != null) {
 							jvmArguments = newJvmArguments;
@@ -270,6 +283,10 @@ class Server{
 				textArea.append("[MCSM INFO]: jarfile was loaded: " + serverFile.getAbsolutePath() + System.lineSeparator());
 			}
 		}
+		if(profile.containsKey("launch_command")) {
+			launchCommand = profile.getProperty("launch_command");
+			textArea.append("[MCSM INFO]: Launch command was loaded: " + launchCommand + System.lineSeparator());
+		}
 		if(profile.containsKey("jvm_arguments")) {
 			jvmArguments = profile.getProperty("jvm_arguments");
 			textArea.append("[MCSM INFO]: JVM arguments was loaded: " + jvmArguments + System.lineSeparator());
@@ -309,7 +326,7 @@ class Server{
 				isRunning = true;
 				textArea.append("[MCSM INFO]: Starting server" + System.lineSeparator());
 				List<String> command = new ArrayList<String>();
-				command.add("java");
+				command.add(launchCommand);
 				for(String arg: jvmArguments.split(" "))if(!arg.isEmpty())command.add(arg);
 				command.addAll(Arrays.asList("-jar", serverFile.getAbsolutePath()));
 				for(String arg: arguments.split(" "))if(!arg.isEmpty())command.add(arg);
